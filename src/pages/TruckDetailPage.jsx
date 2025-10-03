@@ -1,3 +1,5 @@
+// src/pages/TruckDetailPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, Descriptions, Spin, message, Button } from 'antd';
@@ -5,25 +7,36 @@ import axiosInstance from '../api/axios';
 
 function TruckDetailPage() {
   const [truck, setTruck] = useState(null);
+  const [clientName, setClientName] = useState(''); // <-- Новий стан для імені клієнта
   const [loading, setLoading] = useState(true);
-  const { truckId } = useParams();
+  const { id } = useParams();
 
   useEffect(() => {
-    const fetchTruck = async () => {
+    const fetchTruckData = async () => {
       try {
-        const response = await axiosInstance.get(`/trucks/${truckId}/`);
-        setTruck(response.data);
+        setLoading(true);
+        // Крок 1: Завантажуємо дані про вантажівку
+        const response = await axiosInstance.get(`/trucks/${id}/`);
+        const truckData = response.data;
+        setTruck(truckData);
+
+        // Крок 2: Якщо є ID клієнта, завантажуємо його ім'я
+        if (truckData && truckData.client) {
+          const clientResponse = await axiosInstance.get(`/clients/${truckData.client}/`);
+          setClientName(clientResponse.data.name);
+        }
       } catch (error) {
-        message.error('Не вдалося завантажити дані вантажівки');
+        message.error('Не вдалося завантажити дані');
+        console.error("Помилка завантаження:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchTruck();
-  }, [truckId]);
+    fetchTruckData();
+  }, [id]);
 
   if (loading) {
-    return <Spin size="large" />;
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Spin size="large" /></div>;
   }
 
   if (!truck) {
@@ -32,15 +45,20 @@ function TruckDetailPage() {
 
   return (
     <Card 
-      title={`Вантажівка: ${truck.model} (${truck.license_plate})`}
-      extra={<Link to={`/trucks/${truckId}/edit`}><Button type="primary">Редагувати</Button></Link>}
+      title={`Вантажівка: ${truck.specific_model_name} (${truck.license_plate})`}
+      extra={<Link to={`/trucks/${id}/edit`}><Button type="primary">Редагувати</Button></Link>}
     >
       <Descriptions bordered column={1}>
-        <Descriptions.Item label="Модель">{truck.model}</Descriptions.Item>
-        <Descriptions.Item label="VIN-код">{truck.vin_code}</Descriptions.Item>
+        <Descriptions.Item label="Модель">{truck.specific_model_name}</Descriptions.Item>
+        <Descriptions.Item label="VIN-код">{truck.last_seven_vin}</Descriptions.Item>
         <Descriptions.Item label="Номерний знак">{truck.license_plate}</Descriptions.Item>
         <Descriptions.Item label="Клієнт-власник">
-          {truck.client ? <Link to={`/clients/${truck.client.id}`}>{truck.client.name}</Link> : 'Не вказано'}
+          {/* --- ВИПРАВЛЕНО --- */}
+          {truck.client ? (
+            <Link to={`/clients/${truck.client}`}>{clientName || 'Завантаження...'}</Link>
+          ) : (
+            'Не вказано'
+          )}
         </Descriptions.Item>
       </Descriptions>
       <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>

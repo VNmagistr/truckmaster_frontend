@@ -94,7 +94,7 @@ function App() {
             <Route path="/clients/:clientId/edit" element={<ProtectedRoute><EditClientPage /></ProtectedRoute>} />
             <Route path="/trucks" element={<ProtectedRoute><TrucksPage /></ProtectedRoute>} />
             <Route path="/trucks/new" element={<ProtectedRoute><AddTruckPage /></ProtectedRoute>} />
-            <Route path="/trucks/:truckId" element={<ProtectedRoute><TruckDetailPage /></ProtectedRoute>} />
+            <Route path="/trucks/:id" element={<ProtectedRoute><TruckDetailPage /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
