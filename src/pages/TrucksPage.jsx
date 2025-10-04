@@ -7,7 +7,8 @@ import axiosInstance from '../api/axios';
 function TrucksPage() {
   const [trucks, setTrucks] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [clientFilters, setClientFilters] = useState([]); // Стан для фільтрів клієнтів
+
   // Стани для пошуку
   const [searchText, setSearchText] = useState('');
   const [searchedColumn, setSearchedColumn] = useState('');
@@ -23,6 +24,13 @@ function TrucksPage() {
         
         const clientsData = clientsResponse.data;
         const trucksData = trucksResponse.data;
+
+        // Створюємо список фільтрів для таблиці
+        const filters = clientsData.map(client => ({
+          text: client.name,
+          value: client.name,
+        }));
+        setClientFilters(filters);
 
         const clientsMap = clientsData.reduce((acc, client) => {
           acc[client.id] = client.name;
@@ -117,6 +125,8 @@ function TrucksPage() {
       key: 'client',
       render: (text, record) => <Link to={`/clients/${record.client_id}`}>{text}</Link>,
       sorter: (a, b) => a.clientName.localeCompare(b.clientName),
+      filters: clientFilters,
+      onFilter: (value, record) => record.clientName === value,
     },
     {
       title: 'Дії',
