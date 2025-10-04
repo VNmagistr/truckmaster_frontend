@@ -1,15 +1,16 @@
 // src/pages/TruckDetailPage.jsx
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Card, Descriptions, Spin, message, Button } from 'antd';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Card, Descriptions, Spin, message, Button, Popconfirm } from 'antd';
 import axiosInstance from '../api/axios';
 
 function TruckDetailPage() {
   const [truck, setTruck] = useState(null);
-  const [clientName, setClientName] = useState(''); // <-- Новий стан для імені клієнта
+  const [clientName, setClientName] = useState('');
   const [loading, setLoading] = useState(true);
   const { id } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTruckData = async () => {
@@ -35,6 +36,17 @@ function TruckDetailPage() {
     fetchTruckData();
   }, [id]);
 
+  const handleDelete = async () => {
+    try {
+      await axiosInstance.delete(`/trucks/${id}/`);
+      message.success(`Вантажівку (ID: ${id}) було успішно видалено.`);
+      navigate('/trucks'); // Перенаправляємо на сторінку зі списком
+    } catch (error) {
+      message.error('Не вдалося видалити вантажівку.');
+      console.error("Помилка видалення:", error);
+    }
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Spin size="large" /></div>;
   }
@@ -53,7 +65,6 @@ function TruckDetailPage() {
         <Descriptions.Item label="VIN-код">{truck.last_seven_vin}</Descriptions.Item>
         <Descriptions.Item label="Номерний знак">{truck.license_plate}</Descriptions.Item>
         <Descriptions.Item label="Клієнт-власник">
-          {/* --- ВИПРАВЛЕНО --- */}
           {truck.client ? (
             <Link to={`/clients/${truck.client}`}>{clientName || 'Завантаження...'}</Link>
           ) : (
@@ -65,7 +76,15 @@ function TruckDetailPage() {
         <Link to="/trucks">
           <Button>Назад до списку</Button>
         </Link>
-        <Button type="primary" danger>Видалити</Button>
+        <Popconfirm
+          title="Видалити вантажівку?"
+          description="Цю дію неможливо буде скасувати. Ви впевнені?"
+          onConfirm={handleDelete}
+          okText="Так, видалити"
+          cancelText="Скасувати"
+        >
+          <Button type="primary" danger>Видалити</Button>
+        </Popconfirm>
       </div>
     </Card>
   );
