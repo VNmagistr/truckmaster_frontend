@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, message, Popconfirm, Spin } from 'antd';
+import { Table, Button, Space, Input, message, Popconfirm, Spin, Menu } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
@@ -7,9 +7,10 @@ import axiosInstance from '../api/axios';
 function TrucksPage() {
   const [trucks, setTrucks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clientFilters, setClientFilters] = useState([]); // Стан для фільтрів клієнтів
+  const [clientFilters, setClientFilters] = useState([]);
+  const [clientFilterSearch, setClientFilterSearch] = useState(''); // Стан для пошуку в фільтрі клієнтів
 
-  // Стани для пошуку
+  // Стани для загального пошуку в колонках
   const [searchText, setSearchText] = useState('');
   const [searchedColumn, setSearchedColumn] = useState('');
 
@@ -125,7 +126,51 @@ function TrucksPage() {
       key: 'client',
       render: (text, record) => <Link to={`/clients/${record.client_id}`}>{text}</Link>,
       sorter: (a, b) => a.clientName.localeCompare(b.clientName),
-      filters: clientFilters,
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => {
+        const filteredClients = clientFilters.filter(client => 
+          client.text.toLowerCase().includes(clientFilterSearch.toLowerCase())
+        );
+        return (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Знайти клієнта..."
+              value={clientFilterSearch}
+              onChange={e => setClientFilterSearch(e.target.value)}
+              style={{ marginBottom: 8, display: 'block' }}
+            />
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {filteredClients.map(client => (
+                <div 
+                  key={client.value}
+                  onClick={() => {
+                    setSelectedKeys([client.value]);
+                    confirm();
+                  }}
+                  style={{ 
+                    padding: '5px 12px', 
+                    cursor: 'pointer', 
+                    background: selectedKeys[0] === client.value ? '#e6f7ff' : 'transparent' 
+                  }}
+                >
+                  {client.text}
+                </div>
+              ))}
+            </div>
+            <Button 
+              onClick={() => {
+                if (clearFilters) clearFilters();
+                setClientFilterSearch('');
+                confirm();
+              }} 
+              size="small" 
+              style={{ width: '100%', marginTop: 8 }}
+            >
+              Скинути фільтр
+            </Button>
+          </div>
+        );
+      },
+      filterIcon: (filtered) => <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />,
       onFilter: (value, record) => record.clientName === value,
     },
     {
