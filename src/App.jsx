@@ -24,6 +24,7 @@ import axiosInstance from './api/axios';
 import TruckDetailPage from './pages/TruckDetailPage';
 import EditTruckPage from './pages/EditTruckPage';
 import OrdersPage from './pages/OrdersPage';
+import AddOrderPage from './pages/AddOrderPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -101,6 +102,7 @@ function App() {
             <Route path="/trucks/:id" element={<ProtectedRoute><TruckDetailPage /></ProtectedRoute>} />
             <Route path="/trucks/:id/edit" element={<ProtectedRoute><EditTruckPage /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+            <Route path="/orders/new" element={<ProtectedRoute><AddOrderPage /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>

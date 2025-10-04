@@ -1,3 +1,5 @@
+// src/pages/DashboardPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Spin, message, Typography } from 'antd';
 import { CarOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons';
@@ -10,29 +12,40 @@ function DashboardPage() {
   const [stats, setStats] = useState({
     trucksCount: 0,
     clientsCount: 0,
-    ordersCount: 0, // <-- Додано новий лічильник
+    ordersCount: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Завантажуємо дані з трьох джерел паралельно
-        const [trucksResponse, clientsResponse, ordersResponse] = await Promise.all([
+        const results = await Promise.allSettled([
           axiosInstance.get('/trucks/'),
           axiosInstance.get('/clients/'),
-          axiosInstance.get('/orders/'), // <-- Додано запит для замовлень
+          axiosInstance.get('/orders/'),
         ]);
 
+        const trucksData = results[0].status === 'fulfilled' ? results[0].value.data : [];
+        const clientsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
+        const ordersData = results[2].status === 'fulfilled' ? results[2].value.data : [];
+
+        // Перевіряємо, чи були невдалі запити, і показуємо повідомлення
+        const failedRequests = results.filter(res => res.status === 'rejected');
+        if (failedRequests.length > 0) {
+            // --- ОСЬ ВИПРАВЛЕННЯ: warn замінено на warning ---
+            message.warning('Не вдалося завантажити частину статистики.');
+            console.error("Невдалі запити:", failedRequests);
+        }
+
         setStats({
-          trucksCount: trucksResponse.data.length,
-          clientsCount: clientsResponse.data.length,
-          ordersCount: ordersResponse.data.length, // <-- Зберігаємо кількість замовлень
+          trucksCount: trucksData.length,
+          clientsCount: clientsData.length,
+          ordersCount: ordersData.length,
         });
 
       } catch (error) {
-        message.error('Не вдалося завантажити статистику');
-        console.error("Помилка завантаження статистики:", error);
+        message.error('Сталася критична помилка при завантаженні статистики');
+        console.error("Критична помилка:", error);
       } finally {
         setLoading(false);
       }
@@ -77,15 +90,14 @@ function DashboardPage() {
             </Card>
           </Link>
         </Col>
-        {/* --- НОВА КАРТКА ДЛЯ ЗАМОВЛЕНЬ --- */}
         <Col xs={24} sm={12} md={8} lg={6}>
           <Link to="/orders">
             <Card hoverable>
               <Statistic
-                title="Наряди-замовлення"
+                title="Наряд-замовлення"
                 value={stats.ordersCount}
                 prefix={<FileTextOutlined />}
-                valueStyle={{ color: '#faad14' }} // Помаранчевий колір для виділення
+                valueStyle={{ color: '#faad14' }}
               />
             </Card>
           </Link>
