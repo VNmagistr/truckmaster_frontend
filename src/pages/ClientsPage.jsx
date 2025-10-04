@@ -1,8 +1,6 @@
-// src/pages/ClientsPage.jsx
-
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, message, Spin } from 'antd';
-import { UserOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Input, message, Spin, Popconfirm } from 'antd';
+import { UserOutlined, SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 
@@ -25,6 +23,17 @@ function ClientsPage() {
     };
     fetchClients();
   }, []);
+
+  const handleDelete = async (id) => {
+    try {
+      await axiosInstance.delete(`/clients/${id}/`);
+      setClients(clients.filter(client => client.id !== id));
+      message.success('Клієнта успішно видалено!');
+    } catch (error) {
+      message.error('Не вдалося видалити клієнта.');
+      console.error("Помилка видалення:", error);
+    }
+  };
 
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
@@ -64,27 +73,57 @@ function ClientsPage() {
 
   const columns = [
     {
-      title: 'Ім\'я клієнта',
-      dataIndex: 'name', // <-- Перевірте цю назву
+      title: 'Ім\'я',
+      dataIndex: 'name',
       key: 'name',
       render: (text, record) => <Link to={`/clients/${record.id}`}>{text}</Link>,
       sorter: (a, b) => a.name.localeCompare(b.name),
       ...getColumnSearchProps('name', 'імені'),
     },
     {
+      title: 'Прізвище',
+      dataIndex: 'surname', 
+      key: 'surname',
+      sorter: (a, b) => (a.last_name || '').localeCompare(b.last_name || ''),
+      ...getColumnSearchProps('surname', 'прізвищу'),
+    },
+    {
       title: 'Телефон',
-      dataIndex: 'phone', // <-- Перевірте цю назву
+      dataIndex: 'phone_number',
       key: 'phone',
-       ...getColumnSearchProps('phone', 'телефону'),
+       ...getColumnSearchProps('phone_number', 'телефону'),
     },
     {
       title: 'Email',
-      dataIndex: 'email', // <-- Перевірте цю назву
+      dataIndex: 'email',
       key: 'email',
-      sorter: (a, b) => a.email.localeCompare(b.email),
+      sorter: (a, b) => (a.email || '').localeCompare(b.email || ''),
       ...getColumnSearchProps('email', 'email'),
     },
-    // Додайте інші колонки, якщо потрібно
+    {
+      title: 'Дії',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Link to={`/clients/${record.id}/edit`}>
+            <Button type="link" icon={<EditOutlined />}>
+              Редагувати
+            </Button>
+          </Link>
+          <Popconfirm
+            title="Видалити клієнта?"
+            description="Ця дія також може вплинути на пов'язані дані. Ви впевнені?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Так, видалити"
+            cancelText="Скасувати"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              Видалити
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ];
 
   if (loading) {
