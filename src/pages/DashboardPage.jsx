@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Spin, message, Typography } from 'antd';
-import { CarOutlined, UserOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom'; // <-- 1. Імпортуємо Link
+import { CarOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 
 const { Title } = Typography;
@@ -10,20 +10,24 @@ function DashboardPage() {
   const [stats, setStats] = useState({
     trucksCount: 0,
     clientsCount: 0,
+    ordersCount: 0, // <-- Додано новий лічильник
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [trucksResponse, clientsResponse] = await Promise.all([
+        // Завантажуємо дані з трьох джерел паралельно
+        const [trucksResponse, clientsResponse, ordersResponse] = await Promise.all([
           axiosInstance.get('/trucks/'),
-          axiosInstance.get('/clients/')
+          axiosInstance.get('/clients/'),
+          axiosInstance.get('/orders/'), // <-- Додано запит для замовлень
         ]);
 
         setStats({
           trucksCount: trucksResponse.data.length,
           clientsCount: clientsResponse.data.length,
+          ordersCount: ordersResponse.data.length, // <-- Зберігаємо кількість замовлень
         });
 
       } catch (error) {
@@ -50,9 +54,7 @@ function DashboardPage() {
       <Title level={2} style={{ marginBottom: '24px' }}>Інформаційна панель</Title>
       <Row gutter={16}>
         <Col xs={24} sm={12} md={8} lg={6}>
-          {/* --- 2. Обгортаємо картку в Link --- */}
           <Link to="/trucks">
-            {/* --- 3. Додаємо властивість hoverable --- */}
             <Card hoverable>
               <Statistic
                 title="Загальна кількість вантажівок"
@@ -71,6 +73,19 @@ function DashboardPage() {
                 value={stats.clientsCount}
                 prefix={<UserOutlined />}
                 valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Link>
+        </Col>
+        {/* --- НОВА КАРТКА ДЛЯ ЗАМОВЛЕНЬ --- */}
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Link to="/orders">
+            <Card hoverable>
+              <Statistic
+                title="Наряди-замовлення"
+                value={stats.ordersCount}
+                prefix={<FileTextOutlined />}
+                valueStyle={{ color: '#faad14' }} // Помаранчевий колір для виділення
               />
             </Card>
           </Link>

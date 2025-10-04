@@ -8,6 +8,7 @@ import {
   UserOutlined,
   CarOutlined,
   LogoutOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 
 import LoginPage from './pages/LoginPage';
@@ -22,6 +23,7 @@ import AddTruckPage from './pages/AddTruckPage';
 import axiosInstance from './api/axios';
 import TruckDetailPage from './pages/TruckDetailPage';
 import EditTruckPage from './pages/EditTruckPage';
+import OrdersPage from './pages/OrdersPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -71,6 +73,7 @@ function App() {
             { key: '/', icon: <DashboardOutlined />, label: 'Головна' },
             { key: '/clients', icon: <UserOutlined />, label: 'Клієнти' },
             { key: '/trucks', icon: <CarOutlined />, label: 'Вантажівки' },
+            { key: '/orders', icon: <FileTextOutlined />, label: 'Наряд-замовлення' },
           ]}
         />
       </Sider>
@@ -97,6 +100,7 @@ function App() {
             <Route path="/trucks/new" element={<ProtectedRoute><AddTruckPage /></ProtectedRoute>} />
             <Route path="/trucks/:id" element={<ProtectedRoute><TruckDetailPage /></ProtectedRoute>} />
             <Route path="/trucks/:id/edit" element={<ProtectedRoute><EditTruckPage /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
