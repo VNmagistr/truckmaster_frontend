@@ -1,48 +1,81 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Form, Button, Card, message, Select, Input, InputNumber, Space, Typography, Statistic } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { Form, Button, Card, message, Select, Input, InputNumber, Space, Typography, Statistic, Spin } from 'antd';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import axiosInstance from '../api/axios';
 
 const { Option, OptGroup } = Select;
 const { Title } = Typography;
 
-function AddOrderPage() {
+function EditOrderPage() {
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [orderData, setOrderData] = useState(null); // Стан для збереження початкових даних
   const [clients, setClients] = useState([]);
   const [trucks, setTrucks] = useState([]);
   const [workCategories, setWorkCategories] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const { id } = useParams();
   const navigate = useNavigate();
 
+  // Завантажуємо всі довідники та дані існуючого замовлення
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/clients/');
-        setClients(response.data);
-      } catch (error) {
-        message.error('Не вдалося завантажити список клієнтів');
-      }
-    };
-    const fetchWorkCategories = async () => {
-      try {
-        const response = await axiosInstance.get('/work-categories/');
-        setWorkCategories(response.data);
-      } catch (error) {
-        message.error('Не вдалося завантажити прайс-лист робіт');
-      }
-    };
-    fetchClients();
-    fetchWorkCategories();
-  }, []);
+        const [clientsRes, workCategoriesRes, orderRes] = await Promise.all([
+          axiosInstance.get('/clients/'),
+          axiosInstance.get('/work-categories/'),
+          axiosInstance.get(`/orders/${id}/`)
+        ]);
+        
+        const loadedClients = clientsRes.data;
+        const loadedWorkCategories = workCategoriesRes.data;
+        const loadedOrder = orderRes.data;
 
+        setClients(loadedClients);
+        setWorkCategories(loadedWorkCategories);
+        setOrderData(loadedOrder);
+
+        const initialClientId = loadedOrder.client.id;
+        setSelectedClientId(initialClientId);
+
+        const trucksRes = await axiosInstance.get(`/trucks/?client=${initialClientId}`);
+        setTrucks(trucksRes.data);
+        
+        // Заповнюємо форму отриманими даними
+        form.setFieldsValue({
+          order_number: loadedOrder.order_number,
+          client: initialClientId,
+          truck: loadedOrder.truck.id,
+          status: loadedOrder.status, // Використовуємо код статусу ('new', 'in_progress' etc.)
+          works: loadedOrder.works.map(work => ({
+            work: work.work.id,
+            duration_hours: work.duration_hours,
+            custom_description: work.custom_description,
+            cost: work.cost // Заповнюємо вартість, яка вже є
+          }))
+        });
+
+      } catch (error) {
+        message.error('Не вдалося завантажити дані для редагування');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id, form]);
+
+  // Реакція на зміну клієнта у формі
   useEffect(() => {
-    if (!selectedClientId) {
-      setTrucks([]);
-      form.setFieldsValue({ truck: null, works: [] });
-      return;
-    }
-    axiosInstance.get(`/trucks/?client=${selectedClientId}`).then(res => setTrucks(res.data));
+    if (!selectedClientId) return;
+    axiosInstance.get(`/trucks/?client=${selectedClientId}`).then(res => {
+        setTrucks(res.data);
+        // Скидаємо вибір вантажівки, якщо вона не належить новому клієнту
+        const currentTruckId = form.getFieldValue('truck');
+        if (currentTruckId && !res.data.some(truck => truck.id === currentTruckId)) {
+            form.setFieldsValue({ truck: null });
+        }
+    });
   }, [selectedClientId, form]);
 
   const worksMap = useMemo(() => {
@@ -60,18 +93,35 @@ function AddOrderPage() {
   }, [workCategories]);
 
   const onFinish = async (values) => {
-    try {
-      await axiosInstance.post('/orders/', values);
-      message.success('Наряд-замовлення успішно створено!');
-      navigate('/orders');
-    } catch (error) {
-      message.error('Помилка при створенні замовлення');
-      console.error(error);
+  try {
+    // Створюємо копію даних, щоб їх можна було безпечно змінювати
+    const valuesToSend = { ...values };
+
+    // Перевіряємо, чи є список робіт, і видаляємо з нього поле 'cost'
+    if (valuesToSend.works) {
+      valuesToSend.works = valuesToSend.works.map(work => {
+        const { cost, ...rest } = work; // Видаляємо 'cost' з кожного об'єкта роботи
+        return rest;
+      });
     }
-  };
+
+    // Відправляємо очищені дані
+    await axiosInstance.patch(`/orders/${id}/`, valuesToSend);
+    
+    message.success('Наряд-замовлення успішно оновлено!');
+    navigate(`/orders/${id}`);
+  } catch (error) {
+    message.error('Помилка при оновленні замовлення');
+    console.error("Помилка валідації від сервера:", error.response?.data);
+  }
+};
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Spin size="large" /></div>;
+  }
 
   return (
-    <Card title="Створення нового наряд-замовлення">
+    <Card title={`Редагування наряд-замовлення №${orderData?.order_number || id}`}>
       <Form form={form} layout="vertical" onFinish={onFinish} autoComplete="off">
         <Form.Item name="order_number" label="Номер наряду-замовлення (необов'язково)">
           <Input placeholder="Залиште порожнім для автоматичної нумерації" />
@@ -125,15 +175,25 @@ function AddOrderPage() {
                       const hours = form.getFieldValue(['works', name, 'duration_hours']) || 0;
                       const work = worksMap.get(workId);
                       const price = work ? parseFloat(work.price_per_hour) * hours : 0;
+                      // Встановлюємо значення вартості в поле форми для відправки на бекенд
+                      const works = form.getFieldValue('works');
+                      if (works && works[name] && works[name].cost !== price) {
+                        const newWorks = [...works];
+                        newWorks[name] = { ...newWorks[name], cost: price };
+                        form.setFieldsValue({ works: newWorks });
+                      }
                       return <Statistic value={price} precision={2} suffix="грн" style={{ width: '120px' }} />;
                     }}
                   </Form.Item>
+                  
+                  {/* Це поле потрібне, щоб зберігати розраховану вартість, але воно невидиме */}
+                  <Form.Item {...restField} name={[name, 'cost']} noStyle><Input type="hidden" /></Form.Item>
 
                   <MinusCircleOutlined onClick={() => remove(name)} />
                 </Space>
               ))}
               <Form.Item>
-                <Button type="dashed" onClick={() => add({ duration_hours: 1 })} block icon={<PlusOutlined />}>Додати роботу</Button>
+                <Button type="dashed" onClick={() => add({ duration_hours: 1, cost: 0 })} block icon={<PlusOutlined />}>Додати роботу</Button>
               </Form.Item>
             </>
           )}
@@ -143,18 +203,13 @@ function AddOrderPage() {
           <Form.Item noStyle shouldUpdate>
             {() => {
               const works = form.getFieldValue('works') || [];
-              const total = works.reduce((sum, currentWork) => {
-                const work = worksMap.get(currentWork?.work);
-                const pricePerHour = work ? parseFloat(work.price_per_hour) : 0;
-                const hours = currentWork?.duration_hours || 0;
-                return sum + (pricePerHour * hours);
-              }, 0);
+              const total = works.reduce((sum, currentWork) => sum + (parseFloat(currentWork?.cost) || 0), 0);
               return <Statistic value={total} precision={2} suffix="грн" />;
             }}
           </Form.Item>
         </Form.Item>
 
-        <Form.Item name="status" label="Статус" initialValue="new" rules={[{ required: true }]}>
+        <Form.Item name="status" label="Статус" rules={[{ required: true }]}>
            <Select>
              <Option value="new">Нове</Option>
              <Option value="in_progress">В роботі</Option>
@@ -164,12 +219,12 @@ function AddOrderPage() {
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit">Створити замовлення</Button>
-          <Button style={{ marginLeft: 8 }} onClick={() => navigate('/orders')}>Скасувати</Button>
+          <Button type="primary" htmlType="submit">Зберегти зміни</Button>
+          <Button style={{ marginLeft: 8 }} onClick={() => navigate(`/orders/${id}`)}>Скасувати</Button>
         </Form.Item>
       </Form>
     </Card>
   );
 }
 
-export default AddOrderPage;
+export default EditOrderPage;

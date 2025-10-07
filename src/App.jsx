@@ -26,6 +26,7 @@ import EditTruckPage from './pages/EditTruckPage';
 import OrdersPage from './pages/OrdersPage';
 import AddOrderPage from './pages/AddOrderPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import EditOrderPage from './pages/EditOrderPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -105,6 +106,7 @@ function App() {
             <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
             <Route path="/orders/new" element={<ProtectedRoute><AddOrderPage /></ProtectedRoute>} />
             <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+            <Route path="/orders/:id/edit" element={<ProtectedRoute><EditOrderPage /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>

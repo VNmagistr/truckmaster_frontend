@@ -39,7 +39,7 @@ function OrdersPage() {
       title: '№ Замовлення',
       dataIndex: 'id',
       key: 'id',
-      render: (id) => <Link to={`/orders/${id}`}>#{id}</Link>,
+      render: (id) => <Link to={`/orders/${id}`}>Наряд-замовлення #{id}</Link>,
     },
     {
       title: 'Клієнт',
