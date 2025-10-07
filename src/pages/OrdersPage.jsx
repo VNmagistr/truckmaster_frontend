@@ -1,10 +1,9 @@
-// src/pages/OrdersPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Table, Button, message, Spin, Tag } from 'antd';
 import { PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import { format, parseISO } from 'date-fns'; // 1. Імпортуємо функції
 
 function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -13,7 +12,6 @@ function OrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // Припускаємо, що API для замовлень знаходиться тут
         const response = await axiosInstance.get('/orders/');
         setOrders(response.data);
       } catch (error) {
@@ -25,8 +23,8 @@ function OrdersPage() {
     fetchOrders();
   }, []);
 
-  // Функція для надання кольору статусу
   const getStatusColor = (status) => {
+    // Ваша функція getStatusColor без змін
     switch (status) {
       case 'Нове': return 'blue';
       case 'В роботі': return 'processing';
@@ -45,12 +43,12 @@ function OrdersPage() {
     },
     {
       title: 'Клієнт',
-      dataIndex: 'client_name', // Припускаємо, що API повертатиме ім'я
+      dataIndex: 'client', // Оновлено відповідно до ListSerializer
       key: 'client',
     },
     {
       title: 'Вантажівка',
-      dataIndex: 'truck_license_plate', // Припускаємо, що API повертатиме номерний знак
+      dataIndex: 'truck', // Оновлено відповідно до ListSerializer
       key: 'truck',
     },
     {
@@ -58,16 +56,23 @@ function OrdersPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {status.toUpperCase()}
-        </Tag>
+        status ? <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag> : '-'
       ),
     },
     {
       title: 'Дата створення',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date) => new Date(date).toLocaleDateString(),
+      dataIndex: 'start_date', // Оновлено відповідно до ListSerializer
+      key: 'start_date',
+      // 2. Використовуємо date-fns для надійного форматування
+      render: (dateString) => {
+        if (!dateString) return '-';
+        try {
+          const date = parseISO(dateString);
+          return format(date, 'dd.MM.yyyy HH:mm');
+        } catch (error) {
+          return 'Invalid Date';
+        }
+      },
     },
     // Тут буде колонка "Дії"
   ];
