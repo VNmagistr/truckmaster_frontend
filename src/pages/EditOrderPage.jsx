@@ -10,7 +10,7 @@ const { Title } = Typography;
 function EditOrderPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
-  const [orderData, setOrderData] = useState(null); // Стан для збереження початкових даних
+  const [orderData, setOrderData] = useState(null);
   const [clients, setClients] = useState([]);
   const [trucks, setTrucks] = useState([]);
   const [workCategories, setWorkCategories] = useState([]);
@@ -47,12 +47,12 @@ function EditOrderPage() {
           order_number: loadedOrder.order_number,
           client: initialClientId,
           truck: loadedOrder.truck.id,
-          status: loadedOrder.status, // Використовуємо код статусу ('new', 'in_progress' etc.)
+          status: loadedOrder.status,
           works: loadedOrder.works.map(work => ({
             work: work.work.id,
             duration_hours: work.duration_hours,
             custom_description: work.custom_description,
-            cost: work.cost // Заповнюємо вартість, яка вже є
+            cost: work.cost
           }))
         });
 
@@ -70,7 +70,6 @@ function EditOrderPage() {
     if (!selectedClientId) return;
     axiosInstance.get(`/trucks/?client=${selectedClientId}`).then(res => {
         setTrucks(res.data);
-        // Скидаємо вибір вантажівки, якщо вона не належить новому клієнту
         const currentTruckId = form.getFieldValue('truck');
         if (currentTruckId && !res.data.some(truck => truck.id === currentTruckId)) {
             form.setFieldsValue({ truck: null });
@@ -78,13 +77,14 @@ function EditOrderPage() {
     });
   }, [selectedClientId, form]);
 
-  const worksMap = useMemo(() => {
+  const worksPriceMap = useMemo(() => {
     const map = new Map();
     if (workCategories) {
       workCategories.forEach(category => {
+        const price = category.price_per_hour;
         if (category.works) {
           category.works.forEach(work => {
-            map.set(work.id, work);
+            map.set(work.id, price);
           });
         }
       });
@@ -93,28 +93,16 @@ function EditOrderPage() {
   }, [workCategories]);
 
   const onFinish = async (values) => {
-  try {
-    // Створюємо копію даних, щоб їх можна було безпечно змінювати
-    const valuesToSend = { ...values };
-
-    // Перевіряємо, чи є список робіт, і видаляємо з нього поле 'cost'
-    if (valuesToSend.works) {
-      valuesToSend.works = valuesToSend.works.map(work => {
-        const { cost, ...rest } = work; // Видаляємо 'cost' з кожного об'єкта роботи
-        return rest;
-      });
+    try {
+      // Використовуємо PATCH для часткового оновлення
+      await axiosInstance.patch(`/orders/${id}/`, values);
+      message.success('Наряд-замовлення успішно оновлено!');
+      navigate(`/orders/${id}`); // Повертаємось на сторінку деталей
+    } catch (error) {
+      message.error('Помилка при оновленні замовлення');
+      console.error(error.response?.data || error);
     }
-
-    // Відправляємо очищені дані
-    await axiosInstance.patch(`/orders/${id}/`, valuesToSend);
-    
-    message.success('Наряд-замовлення успішно оновлено!');
-    navigate(`/orders/${id}`);
-  } catch (error) {
-    message.error('Помилка при оновленні замовлення');
-    console.error("Помилка валідації від сервера:", error.response?.data);
-  }
-};
+  };
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Spin size="large" /></div>;
@@ -150,11 +138,19 @@ function EditOrderPage() {
               {fields.map(({ key, name, ...restField }) => (
                 <Space key={key} style={{ display: 'flex', marginBottom: 8, flexWrap: 'wrap' }} align="baseline">
                   <Form.Item {...restField} name={[name, 'work']} rules={[{ required: true, message: 'Оберіть роботу' }]} style={{ width: '400px' }}>
-                    <Select placeholder="Оберіть роботу з прайсу" showSearch>
+                    <Select 
+                      placeholder="Оберіть роботу з прайсу" 
+                      showSearch
+                      filterOption={(input, option) => 
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
                       {workCategories.map(category => (
-                        <OptGroup label={category.name} key={category.id}>
+                        <OptGroup label={`${category.name} (${category.price_per_hour} грн/год)`} key={category.id}>
                           {category.works.map(work => (
-                            <Option key={work.id} value={work.id}>{work.name}</Option>
+                            <Option key={work.id} value={work.id} label={work.name}>
+                              {work.name}
+                            </Option>
                           ))}
                         </OptGroup>
                       ))}
@@ -169,25 +165,27 @@ function EditOrderPage() {
                     <Input placeholder="Додатковий опис (необов'язково)" />
                   </Form.Item>
 
+                  {/* Це поле потрібне, щоб зберігати розраховану вартість, але воно невидиме */}
+                  <Form.Item {...restField} name={[name, 'cost']} noStyle><Input type="hidden" /></Form.Item>
+
                   <Form.Item noStyle shouldUpdate>
                     {() => {
                       const workId = form.getFieldValue(['works', name, 'work']);
                       const hours = form.getFieldValue(['works', name, 'duration_hours']) || 0;
-                      const work = worksMap.get(workId);
-                      const price = work ? parseFloat(work.price_per_hour) * hours : 0;
-                      // Встановлюємо значення вартості в поле форми для відправки на бекенд
-                      const works = form.getFieldValue('works');
-                      if (works && works[name] && works[name].cost !== price) {
-                        const newWorks = [...works];
+                      const pricePerHour = parseFloat(worksPriceMap.get(workId)) || 0;
+                      const price = pricePerHour * hours;
+                      
+                      // Динамічно оновлюємо значення 'cost' у формі
+                      const currentWorks = form.getFieldValue('works');
+                      if (currentWorks && currentWorks[name] && currentWorks[name].cost !== price) {
+                        const newWorks = [...currentWorks];
                         newWorks[name] = { ...newWorks[name], cost: price };
                         form.setFieldsValue({ works: newWorks });
                       }
+
                       return <Statistic value={price} precision={2} suffix="грн" style={{ width: '120px' }} />;
                     }}
                   </Form.Item>
-                  
-                  {/* Це поле потрібне, щоб зберігати розраховану вартість, але воно невидиме */}
-                  <Form.Item {...restField} name={[name, 'cost']} noStyle><Input type="hidden" /></Form.Item>
 
                   <MinusCircleOutlined onClick={() => remove(name)} />
                 </Space>

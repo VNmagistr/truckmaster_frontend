@@ -45,13 +45,14 @@ function AddOrderPage() {
     axiosInstance.get(`/trucks/?client=${selectedClientId}`).then(res => setTrucks(res.data));
   }, [selectedClientId, form]);
 
-  const worksMap = useMemo(() => {
+  const worksPriceMap = useMemo(() => {
     const map = new Map();
     if (workCategories) {
       workCategories.forEach(category => {
+        const price = category.price_per_hour;
         if (category.works) {
           category.works.forEach(work => {
-            map.set(work.id, work);
+            map.set(work.id, price);
           });
         }
       });
@@ -100,11 +101,19 @@ function AddOrderPage() {
               {fields.map(({ key, name, ...restField }) => (
                 <Space key={key} style={{ display: 'flex', marginBottom: 8, flexWrap: 'wrap' }} align="baseline">
                   <Form.Item {...restField} name={[name, 'work']} rules={[{ required: true, message: 'Оберіть роботу' }]} style={{ width: '400px' }}>
-                    <Select placeholder="Оберіть роботу з прайсу" showSearch>
+                    <Select 
+                      placeholder="Оберіть роботу з прайсу" 
+                      showSearch
+                      filterOption={(input, option) => 
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
                       {workCategories.map(category => (
-                        <OptGroup label={category.name} key={category.id}>
+                        <OptGroup label={`${category.name} (${category.price_per_hour} грн/год)`} key={category.id}>
                           {category.works.map(work => (
-                            <Option key={work.id} value={work.id}>{work.name}</Option>
+                            <Option key={work.id} value={work.id} label={work.name}>
+                              {work.name}
+                            </Option>
                           ))}
                         </OptGroup>
                       ))}
@@ -123,8 +132,8 @@ function AddOrderPage() {
                     {() => {
                       const workId = form.getFieldValue(['works', name, 'work']);
                       const hours = form.getFieldValue(['works', name, 'duration_hours']) || 0;
-                      const work = worksMap.get(workId);
-                      const price = work ? parseFloat(work.price_per_hour) * hours : 0;
+                      const pricePerHour = parseFloat(worksPriceMap.get(workId)) || 0;
+                      const price = pricePerHour * hours;
                       return <Statistic value={price} precision={2} suffix="грн" style={{ width: '120px' }} />;
                     }}
                   </Form.Item>
@@ -144,8 +153,7 @@ function AddOrderPage() {
             {() => {
               const works = form.getFieldValue('works') || [];
               const total = works.reduce((sum, currentWork) => {
-                const work = worksMap.get(currentWork?.work);
-                const pricePerHour = work ? parseFloat(work.price_per_hour) : 0;
+                const pricePerHour = parseFloat(worksPriceMap.get(currentWork?.work)) || 0;
                 const hours = currentWork?.duration_hours || 0;
                 return sum + (pricePerHour * hours);
               }, 0);
