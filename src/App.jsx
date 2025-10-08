@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, message } from 'antd';
+// 1. Оновлюємо імпорт іконок
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DashboardOutlined,
   UserOutlined,
-  CarOutlined,
+  TruckOutlined, // <-- Замість CarOutlined
   LogoutOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
@@ -20,13 +21,13 @@ import EditClientPage from './pages/EditClientPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import TrucksPage from './pages/TrucksPage';
 import AddTruckPage from './pages/AddTruckPage';
-import axiosInstance from './api/axios';
-import TruckDetailPage from './pages/TruckDetailPage';
 import EditTruckPage from './pages/EditTruckPage';
+import TruckDetailPage from './pages/TruckDetailPage';
 import OrdersPage from './pages/OrdersPage';
 import AddOrderPage from './pages/AddOrderPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import EditOrderPage from './pages/EditOrderPage';
+import axiosInstance from './api/axios';
 
 const { Header, Sider, Content } = Layout;
 
@@ -75,7 +76,8 @@ function App() {
           items={[
             { key: '/', icon: <DashboardOutlined />, label: 'Головна' },
             { key: '/clients', icon: <UserOutlined />, label: 'Клієнти' },
-            { key: '/trucks', icon: <CarOutlined />, label: 'Вантажівки' },
+            // 2. Замінюємо іконку тут
+            { key: '/trucks', icon: <TruckOutlined />, label: 'Вантажівки' },
             { key: '/orders', icon: <FileTextOutlined />, label: 'Наряд-замовлення' },
           ]}
         />
@@ -97,8 +99,8 @@ function App() {
             <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
             <Route path="/clients/new" element={<ProtectedRoute><AddClientPage /></ProtectedRoute>} />
-            <Route path="/clients/:clientId" element={<ProtectedRoute><ClientDetailPage /></ProtectedRoute>} />
             <Route path="/clients/:clientId/edit" element={<ProtectedRoute><EditClientPage /></ProtectedRoute>} />
+            <Route path="/clients/:id" element={<ProtectedRoute><ClientDetailPage /></ProtectedRoute>} />
             <Route path="/trucks" element={<ProtectedRoute><TrucksPage /></ProtectedRoute>} />
             <Route path="/trucks/new" element={<ProtectedRoute><AddTruckPage /></ProtectedRoute>} />
             <Route path="/trucks/:id" element={<ProtectedRoute><TruckDetailPage /></ProtectedRoute>} />
