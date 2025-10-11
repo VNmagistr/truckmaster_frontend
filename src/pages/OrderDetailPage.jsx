@@ -1,8 +1,6 @@
-// src/pages/OrderDetailPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Card, Descriptions, Spin, message, Button, Typography, Table, Tag } from 'antd';
+import { Card, Descriptions, Spin, message, Button, Typography, Table, Tag, Image, Space } from 'antd';
 import axiosInstance from '../api/axios';
 import { format, parseISO } from 'date-fns';
 
@@ -40,6 +38,11 @@ function OrderDetailPage() {
       key: 'custom_description',
     },
     {
+        title: 'Витрачено годин',
+        dataIndex: 'duration_hours',
+        key: 'duration_hours',
+    },
+    {
       title: 'Вартість, грн',
       dataIndex: 'cost',
       key: 'cost',
@@ -63,10 +66,10 @@ function OrderDetailPage() {
 
   return (
     <Card
-      title={`Наряд-замовлення №${order.id}`}
+      title={`Наряд-замовлення №${order.order_number}`}
       extra={<Link to={`/orders/${id}/edit`}><Button type="primary">Редагувати</Button></Link>}
     >
-      <Descriptions bordered column={1}>
+      <Descriptions bordered column={1} size="small">
         <Descriptions.Item label="Статус">
           <Tag color="blue">{order.status}</Tag>
         </Descriptions.Item>
@@ -83,6 +86,31 @@ function OrderDetailPage() {
           <Text strong>{parseFloat(order.total_cost).toFixed(2)} грн</Text>
         </Descriptions.Item>
       </Descriptions>
+
+      <Title level={4} style={{ marginTop: 24 }}>Фотографії автомобіля</Title>
+      <Space wrap>
+        {order.car_photo && <Image width={200} src={order.car_photo} placeholder={<Spin />} />}
+        {order.odometer_photo && <Image width={200} src={order.odometer_photo} placeholder={<Spin />} />}
+        {order.dashboard_photo && <Image width={200} src={order.dashboard_photo} placeholder={<Spin />} />}
+      </Space>
+
+      {order.repair_photos && order.repair_photos.length > 0 && (
+        <>
+            <Title level={4} style={{ marginTop: 24 }}>Фотографії поломок</Title>
+            <Image.PreviewGroup>
+                <Space wrap>
+                    {order.repair_photos.map(photo => (
+                        <div key={photo.id} style={{ textAlign: 'center' }}>
+                            <Image width={200} src={photo.image} placeholder={<Spin />} />
+                            <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                                {photo.caption}
+                            </Text>
+                        </div>
+                    ))}
+                </Space>
+            </Image.PreviewGroup>
+        </>
+      )}
 
       <Title level={4} style={{ marginTop: 24 }}>Виконані роботи</Title>
       <Table

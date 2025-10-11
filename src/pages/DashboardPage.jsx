@@ -1,10 +1,9 @@
-// src/pages/DashboardPage.jsx
-
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Spin, message, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Spin, message, Typography, List, Tag } from 'antd';
 import { CarOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import { format, parseISO } from 'date-fns';
 
 const { Title } = Typography;
 
@@ -14,45 +13,51 @@ function DashboardPage() {
     clientsCount: 0,
     ordersCount: 0,
   });
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       try {
         const results = await Promise.allSettled([
           axiosInstance.get('/trucks/'),
           axiosInstance.get('/clients/'),
           axiosInstance.get('/orders/'),
+          axiosInstance.get('/recent-orders/')
         ]);
 
+        // --- ВИПРАВЛЕНО: Повертаємось до .length ---
         const trucksData = results[0].status === 'fulfilled' ? results[0].value.data : [];
         const clientsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
         const ordersData = results[2].status === 'fulfilled' ? results[2].value.data : [];
-
-        // Перевіряємо, чи були невдалі запити, і показуємо повідомлення
-        const failedRequests = results.filter(res => res.status === 'rejected');
-        if (failedRequests.length > 0) {
-            // --- ОСЬ ВИПРАВЛЕННЯ: warn замінено на warning ---
-            message.warning('Не вдалося завантажити частину статистики.');
-            console.error("Невдалі запити:", failedRequests);
-        }
+        const recentOrdersData = results[3].status === 'fulfilled' ? results[3].value.data : [];
 
         setStats({
           trucksCount: trucksData.length,
           clientsCount: clientsData.length,
           ordersCount: ordersData.length,
         });
+        setRecentOrders(recentOrdersData);
 
       } catch (error) {
-        message.error('Сталася критична помилка при завантаженні статистики');
-        console.error("Критична помилка:", error);
+        message.error('Не вдалося завантажити дані для дашборду');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchDashboardData();
   }, []);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+        case 'Нове': return 'blue';
+        case 'В роботі': return 'processing';
+        case 'Завершено': return 'success';
+        case 'Скасовано': return 'default';
+        default: return 'default';
+    }
+  };
 
   if (loading) {
     return (
@@ -103,6 +108,28 @@ function DashboardPage() {
           </Link>
         </Col>
       </Row>
+
+      <Title level={3} style={{ marginTop: '32px' }}>Останні замовлення</Title>
+      <List
+        itemLayout="horizontal"
+        dataSource={recentOrders}
+        renderItem={(item) => (
+          <List.Item
+            actions={[<Link to={`/orders/${item.id}`}>Деталі</Link>]}
+          >
+            <List.Item.Meta
+              title={<Link to={`/orders/${item.id}`}>Наряд-замовлення №{item.order_number || item.id}</Link>}
+              description={`${item.client} - ${item.truck}`}
+            />
+            <div>
+              <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
+              <span style={{ marginLeft: '16px', color: '#888' }}>
+                {format(parseISO(item.start_date), 'dd.MM.yyyy')}
+              </span>
+            </div>
+          </List.Item>
+        )}
+      />
     </div>
   );
 }
