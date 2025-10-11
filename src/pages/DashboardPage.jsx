@@ -4,16 +4,14 @@ import { CarOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import { format, parseISO } from 'date-fns';
+import { Column } from '@ant-design/charts';
 
 const { Title } = Typography;
 
 function DashboardPage() {
-  const [stats, setStats] = useState({
-    trucksCount: 0,
-    clientsCount: 0,
-    ordersCount: 0,
-  });
+  const [stats, setStats] = useState({ trucksCount: 0, clientsCount: 0, ordersCount: 0 });
   const [recentOrders, setRecentOrders] = useState([]);
+  const [orderStats, setOrderStats] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,14 +21,15 @@ function DashboardPage() {
           axiosInstance.get('/trucks/'),
           axiosInstance.get('/clients/'),
           axiosInstance.get('/orders/'),
-          axiosInstance.get('/recent-orders/')
+          axiosInstance.get('/recent-orders/'),
+          axiosInstance.get('/order-stats-by-status/')
         ]);
 
-        // --- ВИПРАВЛЕНО: Повертаємось до .length ---
         const trucksData = results[0].status === 'fulfilled' ? results[0].value.data : [];
         const clientsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
         const ordersData = results[2].status === 'fulfilled' ? results[2].value.data : [];
         const recentOrdersData = results[3].status === 'fulfilled' ? results[3].value.data : [];
+        const orderStatsData = results[4].status === 'fulfilled' ? results[4].value.data : [];
 
         setStats({
           trucksCount: trucksData.length,
@@ -38,6 +37,7 @@ function DashboardPage() {
           ordersCount: ordersData.length,
         });
         setRecentOrders(recentOrdersData);
+        setOrderStats(orderStatsData);
 
       } catch (error) {
         message.error('Не вдалося завантажити дані для дашборду');
@@ -45,26 +45,44 @@ function DashboardPage() {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
-
+  
   const getStatusColor = (status) => {
     switch (status) {
-        case 'Нове': return 'blue';
-        case 'В роботі': return 'processing';
-        case 'Завершено': return 'success';
-        case 'Скасовано': return 'default';
-        default: return 'default';
+      case 'Нове': return 'blue';
+      case 'В роботі': return 'processing';
+      case 'Завершено': return 'success';
+      case 'Скасовано': return 'default';
+      default: return 'default';
     }
   };
 
+  const chartConfig = {
+    data: orderStats,
+    xField: 'status',
+    yField: 'count',
+    label: {
+      position: 'middle',
+      style: {
+        fill: '#FFFFFF',
+        opacity: 0.9,
+      },
+    },
+    xAxis: {
+      label: {
+        autoHide: true,
+        autoRotate: false,
+      },
+    },
+    meta: {
+      status: { alias: 'Статус' },
+      count: { alias: 'Кількість' },
+    },
+  };
+
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size="large" /></div>;
   }
 
   return (
@@ -109,6 +127,11 @@ function DashboardPage() {
         </Col>
       </Row>
 
+      <Title level={3} style={{ marginTop: '32px' }}>Статистика замовлень</Title>
+      <Card>
+        {orderStats.length > 0 ? <Column {...chartConfig} /> : <p>Немає даних для побудови графіка</p>}
+      </Card>
+
       <Title level={3} style={{ marginTop: '32px' }}>Останні замовлення</Title>
       <List
         itemLayout="horizontal"
@@ -124,7 +147,7 @@ function DashboardPage() {
             <div>
               <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
               <span style={{ marginLeft: '16px', color: '#888' }}>
-                {format(parseISO(item.start_date), 'dd.MM.yyyy')}
+                {item.start_date ? format(parseISO(item.start_date), 'dd.MM.yyyy') : ''}
               </span>
             </div>
           </List.Item>
