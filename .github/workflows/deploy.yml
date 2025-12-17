@@ -1,37 +1,52 @@
-name: Deploy Frontend
+name: Deploy Frontend to DigitalOcean
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        
+
     - name: Install dependencies
       run: npm ci
-      
+
     - name: Build
       run: npm run build
-      
-    - name: Setup SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-        
-    - name: Add server to known hosts
+
+    - name: Install sshpass
+      run: sudo apt-get install -y sshpass
+
+    - name: Deploy to Server
+      env:
+        SSHPASS: ${{ secrets.DO_PASSWORD }}
       run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-        
-    - name: Deploy files
-      run: |
-        rsync -avz --delete dist/ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/truckmaster-frontend/
+        sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USERNAME }}@${{ secrets.DO_HOST }} << 'EOF'
+          set -e
+          echo "📦 Deploying frontend..."
+          
+          # Створюємо директорію якщо не існує
+          sudo mkdir -p /var/www/truckmaster-frontend
+          sudo chown -R ubuntu:www-data /var/www/truckmaster-frontend
+        EOF
+
+        # Копіюємо файли
+        sshpass -e scp -o StrictHostKeyChecking=no -r dist/* ${{ secrets.DO_USERNAME }}@${{ secrets.DO_HOST }}:/var/www/truckmaster-frontend/
+
+        sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USERNAME }}@${{ secrets.DO_HOST }} << 'EOF'
+          # Встановлюємо права
+          sudo chown -R www-data:www-data /var/www/truckmaster-frontend
+          sudo chmod -R 755 /var/www/truckmaster-frontend
+          
+          echo "✅ Frontend deployment completed!"
+        EOF
