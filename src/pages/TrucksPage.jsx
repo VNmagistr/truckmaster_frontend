@@ -22,11 +22,8 @@ function TrucksPage() {
       
       const trucksData = trucksResponse.data.results || trucksResponse.data;
 
-      // API вже повертає client як текст, тому просто використовуємо його
-      const enrichedTrucks = trucksData.map(truck => ({
-  ...truck,
-  clientName: truck.client_name || 'Невідомий клієнт',
-}));
+      // Просто використовуємо дані як є, без додаткового маппінгу
+      setTrucks(trucksData);
 
       // Створюємо список унікальних клієнтів для фільтра
       const uniqueClients = [...new Set(trucksData.map(t => t.client_name).filter(Boolean))];
@@ -36,7 +33,6 @@ function TrucksPage() {
       }));
       setClientFilters(filters);
 
-      setTrucks(enrichedTrucks);
     } catch (error) {
       message.error('Не вдалося завантажити дані');
     } finally {
