@@ -18,40 +18,33 @@ function TrucksPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [trucksResponse, clientsResponse] = await Promise.all([
-        axiosInstance.get('/trucks/'),
-        axiosInstance.get('/clients/')
-      ]);
+      const trucksResponse = await axiosInstance.get('/trucks/');
       
-      const clientsData = clientsResponse.data.results || clientsResponse.data;
       const trucksData = trucksResponse.data.results || trucksResponse.data;
 
-        // Створюємо список фільтрів для таблиці
-        const filters = clientsData.map(client => ({
-          text: client.name,
-          value: client.name,
-        }));
-        setClientFilters(filters);
+      // API вже повертає client як текст, тому просто використовуємо його
+      const enrichedTrucks = trucksData.map(truck => ({
+        ...truck,
+        clientName: truck.client || 'Невідомий клієнт',
+      }));
 
-        const clientsMap = clientsData.reduce((acc, client) => {
-          acc[client.id] = client.name;
-          return acc;
-        }, {});
+      // Створюємо список унікальних клієнтів для фільтра
+      const uniqueClients = [...new Set(trucksData.map(t => t.client).filter(Boolean))];
+      const filters = uniqueClients.map(clientName => ({
+        text: clientName,
+        value: clientName,
+      }));
+      setClientFilters(filters);
 
-        const enrichedTrucks = trucksData.map(truck => ({
-          ...truck,
-          clientName: clientsMap[truck.client_id] || 'Невідомий клієнт',
-        }));
-
-        setTrucks(enrichedTrucks);
-      } catch (error) {
-        message.error('Не вдалося завантажити дані');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+      setTrucks(enrichedTrucks);
+    } catch (error) {
+      message.error('Не вдалося завантажити дані');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
 
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
