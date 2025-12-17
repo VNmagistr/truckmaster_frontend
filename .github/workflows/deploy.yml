@@ -22,18 +22,16 @@ jobs:
     - name: Build
       run: npm run build
       
-    - name: Setup SSH
-      env:
-        SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+        
+    - name: Add server to known hosts
       run: |
         mkdir -p ~/.ssh
-        echo "$SSH_KEY" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
         
     - name: Deploy files
       run: |
-        rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-          --delete \
-          dist/ \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/truckmaster-frontend/
+        rsync -avz --delete dist/ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/truckmaster-frontend/
