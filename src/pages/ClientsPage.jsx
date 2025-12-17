@@ -11,18 +11,18 @@ function ClientsPage() {
   const [searchedColumn, setSearchedColumn] = useState('');
 
   useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const response = await axiosInstance.get('/clients/');
-        setClients(response.data);
-      } catch (error) {
-        message.error('Не вдалося завантажити список клієнтів');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchClients();
-  }, []);
+  const fetchClients = async () => {
+    try {
+      const response = await axiosInstance.get('/clients/');
+      setClients(response.data.results || response.data);
+    } catch (error) {
+      message.error('Не вдалося завантажити список клієнтів');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchClients();
+}, []);
 
   const handleDelete = async (id) => {
     try {

@@ -12,18 +12,18 @@ function OrdersPage() {
   const [searchedColumn, setSearchedColumn] = useState('');
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axiosInstance.get('/orders/');
-        setOrders(response.data);
-      } catch (error) {
-        message.error('Не вдалося завантажити список замовлень');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
+  const fetchOrders = async () => {
+    try {
+      const response = await axiosInstance.get('/orders/');
+      setOrders(response.data.results || response.data);
+    } catch (error) {
+      message.error('Не вдалося завантажити список замовлень');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchOrders();
+}, []);
 
   const getStatusColor = (status) => {
     switch (status) {

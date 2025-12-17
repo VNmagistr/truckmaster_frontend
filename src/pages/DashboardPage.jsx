@@ -29,41 +29,45 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Тепер завантажуємо всі 5 джерел даних одночасно
-        const results = await Promise.allSettled([
-          axiosInstance.get('/trucks/'),
-          axiosInstance.get('/clients/'),
-          axiosInstance.get('/orders/'),
-          axiosInstance.get('/recent-orders/'),
-          axiosInstance.get('/dashboard-order-stats/')
-        ]);
+  const fetchDashboardData = async () => {
+    try {
+      const results = await Promise.allSettled([
+        axiosInstance.get('/trucks/'),
+        axiosInstance.get('/clients/'),
+        axiosInstance.get('/orders/'),
+        axiosInstance.get('/recent-orders/'),
+        axiosInstance.get('/dashboard-order-stats/')
+      ]);
 
-        const trucksData = results[0].status === 'fulfilled' ? results[0].value.data : [];
-        const clientsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
-        const ordersData = results[2].status === 'fulfilled' ? results[2].value.data : [];
-        const recentOrdersData = results[3].status === 'fulfilled' ? results[3].value.data : [];
-        const periodStatsData = results[4].status === 'fulfilled' ? results[4].value.data : {};
+      // Обробляємо пагіновані відповіді
+      const trucksData = results[0].status === 'fulfilled' 
+        ? (results[0].value.data.results || results[0].value.data) 
+        : [];
+      const clientsData = results[1].status === 'fulfilled' 
+        ? (results[1].value.data.results || results[1].value.data) 
+        : [];
+      const ordersData = results[2].status === 'fulfilled' 
+        ? (results[2].value.data.results || results[2].value.data) 
+        : [];
+      const recentOrdersData = results[3].status === 'fulfilled' ? results[3].value.data : [];
+      const periodStatsData = results[4].status === 'fulfilled' ? results[4].value.data : {};
 
-        setStats({
-          // Дані для верхніх карток-посилань
-          totalTrucks: trucksData.length,
-          totalClients: clientsData.length,
-          totalOrders: ordersData.length,
-          // Дані для нижніх карток зі статистикою
-          ...periodStatsData
-        });
-        setRecentOrders(recentOrdersData);
+      setStats({
+        totalTrucks: trucksData.length,
+        totalClients: clientsData.length,
+        totalOrders: ordersData.length,
+        ...periodStatsData
+      });
+      setRecentOrders(recentOrdersData);
 
-      } catch (error) {
-        message.error('Не вдалося завантажити дані для дашборду');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboardData();
-  }, []);
+    } catch (error) {
+      message.error('Не вдалося завантажити дані для дашборду');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchDashboardData();
+    }, []);
   
   const getStatusColor = (status) => {
     switch (status) {

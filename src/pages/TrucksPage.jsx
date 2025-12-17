@@ -15,16 +15,16 @@ function TrucksPage() {
   const [searchedColumn, setSearchedColumn] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [trucksResponse, clientsResponse] = await Promise.all([
-          axiosInstance.get('/trucks/'),
-          axiosInstance.get('/clients/')
-        ]);
-        
-        const clientsData = clientsResponse.data;
-        const trucksData = trucksResponse.data;
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [trucksResponse, clientsResponse] = await Promise.all([
+        axiosInstance.get('/trucks/'),
+        axiosInstance.get('/clients/')
+      ]);
+      
+      const clientsData = clientsResponse.data.results || clientsResponse.data;
+      const trucksData = trucksResponse.data.results || trucksResponse.data;
 
         // Створюємо список фільтрів для таблиці
         const filters = clientsData.map(client => ({
