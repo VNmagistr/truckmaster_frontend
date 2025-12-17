@@ -9,36 +9,37 @@ function LoginPage({ setIsAuthenticated }) {
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      // Відправляємо запит на отримання токену
-      const response = await axiosInstance.post('/token/', {
-        username: values.username,
-        password: values.password,
-      });
+  setLoading(true);
+  try {
+    const response = await axiosInstance.post('/token/', {
+      username: values.username,
+      password: values.password,
+    });
 
-      // Зберігаємо токени у localStorage
-      localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
-      setIsAuthenticated(true);
-      
-      // Оновлюємо заголовок для майбутніх запитів
-      axiosInstance.defaults.headers['Authorization'] = 'Bearer ' + response.data.access;
+    // Зберігаємо токени
+    localStorage.setItem('access_token', response.data.access);
+    localStorage.setItem('refresh_token', response.data.refresh);
+    
+    // Оновлюємо заголовок для axios
+    axiosInstance.defaults.headers['Authorization'] = 'Bearer ' + response.data.access;
 
-      // Показуємо сповіщення про успіх
-      message.success('Вхід виконано успішно!');
+    message.success('Вхід виконано успішно!');
+    
+    // Спочатку оновлюємо стан автентифікації
+    setIsAuthenticated(true);
+    
+    // Перенаправляємо ПІСЛЯ оновлення стану
+    setTimeout(() => {
+      navigate('/');
+    }, 100);
 
-      // Перенаправляємо на головну сторінку
-      navigate('/'); 
-
-    } catch (error) {
-      // Показуємо сповіщення про помилку
-      message.error('Помилка! Неправильний логін або пароль.');
-      console.error('Login error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    message.error('Помилка! Неправильний логін або пароль.');
+    console.error('Login error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f0f2f5' }}>
