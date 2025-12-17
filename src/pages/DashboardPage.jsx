@@ -39,23 +39,23 @@ function DashboardPage() {
         axiosInstance.get('/dashboard-order-stats/')
       ]);
 
-      // Обробляємо пагіновані відповіді
-      const trucksData = results[0].status === 'fulfilled' 
-        ? (results[0].value.data.results || results[0].value.data) 
-        : [];
-      const clientsData = results[1].status === 'fulfilled' 
-        ? (results[1].value.data.results || results[1].value.data) 
-        : [];
-      const ordersData = results[2].status === 'fulfilled' 
-        ? (results[2].value.data.results || results[2].value.data) 
-        : [];
+      // Використовуємо count для загальної кількості
+      const trucksCount = results[0].status === 'fulfilled' 
+        ? (results[0].value.data.count || results[0].value.data.length || 0)
+        : 0;
+      const clientsCount = results[1].status === 'fulfilled' 
+        ? (results[1].value.data.count || results[1].value.data.length || 0)
+        : 0;
+      const ordersCount = results[2].status === 'fulfilled' 
+        ? (results[2].value.data.count || results[2].value.data.length || 0)
+        : 0;
       const recentOrdersData = results[3].status === 'fulfilled' ? results[3].value.data : [];
       const periodStatsData = results[4].status === 'fulfilled' ? results[4].value.data : {};
 
       setStats({
-        totalTrucks: trucksData.length,
-        totalClients: clientsData.length,
-        totalOrders: ordersData.length,
+        totalTrucks: trucksCount,
+        totalClients: clientsCount,
+        totalOrders: ordersCount,
         ...periodStatsData
       });
       setRecentOrders(recentOrdersData);
@@ -67,7 +67,7 @@ function DashboardPage() {
     }
   };
   fetchDashboardData();
-    }, []);
+}, []);
   
   const getStatusColor = (status) => {
     switch (status) {
