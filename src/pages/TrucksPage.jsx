@@ -24,12 +24,12 @@ function TrucksPage() {
 
       // API вже повертає client як текст, тому просто використовуємо його
       const enrichedTrucks = trucksData.map(truck => ({
-        ...truck,
-        clientName: truck.client || 'Невідомий клієнт',
-      }));
+  ...truck,
+  clientName: truck.client_name || 'Невідомий клієнт',
+}));
 
       // Створюємо список унікальних клієнтів для фільтра
-      const uniqueClients = [...new Set(trucksData.map(t => t.client).filter(Boolean))];
+      const uniqueClients = [...new Set(trucksData.map(t => t.client_name).filter(Boolean))];
       const filters = uniqueClients.map(clientName => ({
         text: clientName,
         value: clientName,
